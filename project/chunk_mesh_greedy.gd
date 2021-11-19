@@ -116,7 +116,6 @@ func _get_voxel_rel(face, layer, slice, offset, top=false):
 
 
 func _convert_quad(quad, layer, face):
-	var points = quad + [layer, layer, layer+1, layer+1]
 	match face:
 		0:
 			_add_quad([
