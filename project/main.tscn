@@ -6,8 +6,9 @@
 [node name="Spatial" type="Spatial"]
 
 [node name="Camera" type="Camera" parent="."]
-transform = Transform( 1, 0, 0, 0, 0.819152, 0.573577, 0, -0.573577, 0.819152, 16, 40, 50 )
+transform = Transform( 1, 0, 0, 0, 0.819152, 0.573577, 0, -0.573577, 0.819152, 4, 4, 4 )
 script = ExtResource( 2 )
+speed = 30
 
 [node name="Chunk" parent="." instance=ExtResource( 1 )]
 

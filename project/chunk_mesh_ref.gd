@@ -63,6 +63,7 @@ func generate_mesh():
 	for vi in range(len(chunk.voxels)):
 		if chunk.voxels[vi]:
 			for f in range(6):
+#			for f in [0,1,3,4,5]:
 				_update_mesh_face_1(chunk._i_to_pos(vi), f)
 
 	apply_mesh()

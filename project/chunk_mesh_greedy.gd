@@ -73,15 +73,17 @@ func generate_mesh():
 					elif !voxel: # end strip
 						# step back if under voxel to find the minimum offset/ strip length
 						var offset_min = offset
-						if top:
+						top = _get_voxel_rel(face, layer, slice, offset_min-1, true)
+						if top:# TODO keep track instead of backtracking
+#							print("stepping back ", layer, " ", slice, " ", offset)
 							while offset_min > quads[-1][0]:# offset min > start
 								top = _get_voxel_rel(face, layer, slice, offset_min-1, true)
 								if not top:
 									break
 								offset_min -= 1
 
-						quads[-1][4] = offset # offset_end_max
-						quads[-1][1] = offset_min # offset_end_max
+						quads[-1][1] = offset_min # offset_end_min
+						quads[-1][4] = offset #     offset_end_max
 						strip_active = false
 
 			# merge adjacent aligned strips
@@ -90,10 +92,16 @@ func generate_mesh():
 			while a < len(quads) - 1:
 				var quad_b = quads[b]
 				var quad_a = quads[a]
-				# if  slice_end of A = slice_start of B and offsets are equal (strips are adjacent and aligned)
-				if quad_a[3] == quad_b[2] and quad_a[0] == quad_b[0] and quad_a[1] == quad_b[1]:
+				# if a,b are adjacent and start equal and the end ranges overlap, merge
+				if quad_a[3] == quad_b[2] and quad_a[0] == quad_b[0] and (
+					(quad_a[1] >= quad_b[1] and quad_a[1] <= quad_b[4]) # a range starts within b range
+					or (quad_b[1] >= quad_a[1] and quad_b[1] <= quad_a[4])): # b range starts within a range
+
 					quads.remove(b)
 					quads[a][3] = quad_b[3]
+					quads[a][1] = max(quad_a[1], quad_b[1])
+					quads[a][4] = min(quad_a[4], quad_b[4])
+
 					merge_counter += 1 # just interesting info
 				else:
 					b += 1
@@ -177,8 +185,8 @@ func _convert_quad(quad, layer, face):
 func _add_quad(verts, face):
 	var i = len(m_verts)# offset for new tris/indexes
 
-#	var col = Color(randf(), randf(), randf())
-	var col = Color(0.1, 0.6, 0.3)
+	var col = Color(randf(), randf(), randf())
+#	var col = Color(0.1, 0.6, 0.3)
 
 	# add the 4 corner verts of this face
 	for v in range(4):

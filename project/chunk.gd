@@ -9,6 +9,29 @@ var physical_size: float = width * voxel_size
 
 var voxels := PoolByteArray()
 
+var test_case := [
+	Vector3(0,0,0),
+	Vector3(0,0,1),
+	Vector3(0,0,2),
+	Vector3(1,0,0),
+	Vector3(1,0,1),
+	Vector3(1,0,2),
+	Vector3(2,0,0),
+	Vector3(2,0,1),
+	Vector3(2,0,2),
+#	Vector3(3,0,0),
+	Vector3(3,0,1),
+	Vector3(3,0,2),
+
+#	Vector3(3,1,0),
+	Vector3(3,1,1),
+	Vector3(3,1,2),
+
+	Vector3(1,1,1),
+	Vector3(2,1,2),
+	Vector3(2,1,1),
+]
+
 func _ready() -> void:
 	randomize()
 	voxels.resize(volume)
@@ -27,6 +50,10 @@ func _ready() -> void:
 #		var pos:Vector3 = _i_to_pos(v)
 #		if (pos - Vector3(16,16,16)).length() < 15:
 #			voxels[v] = 1
+
+	# test case
+	for v in test_case:
+		set_voxel(v, 1)
 
 	$Reference.generate_mesh()
 	$Greedy.generate_mesh()
