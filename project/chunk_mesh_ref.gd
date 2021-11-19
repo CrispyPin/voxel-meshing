@@ -78,6 +78,7 @@ func generate_mesh():
 #						m_colors.append(type_colors[chunk.voxels[vi]])
 	apply_mesh()
 	print("indexes: ", len(m_indexes))
+	print("tris: ", len(m_indexes)/3)
 
 
 func _update_mesh_face_1(pos, f):

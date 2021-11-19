@@ -15,26 +15,15 @@ var m_indexes := PoolIntArray()
 var m_colors := PoolColorArray()
 
 var mesh_array := [] # contains vertexes, normals and indexes etc.
-var type_colors := PoolColorArray()
 
 onready var chunk := get_parent()
 
-
-var t = 0
 
 func _ready() -> void:
 	randomize()
 	mesh = ArrayMesh.new()
 	clear_mesh_arrays()
 
-	for _c in range(256):# assign colours to all types
-		type_colors.append(Color(randf(),randf(),randf()))
-
-func _process(delta: float) -> void:
-	t += delta
-	if t >= 1:
-		t = 0
-		generate_mesh()
 
 
 func clear_mesh_arrays():
@@ -62,65 +51,65 @@ func generate_mesh():
 	var merge_counter = 0
 	clear_mesh_arrays()
 
-	var normal = 2# up
-	for layer in range(chunk.width):
-#	for y in range(chunk.width):
-		var quads := [] # each quad is a list of x1,x2,y1,y2 coords (aligned with current plane)
-		for slice in range(chunk.width):
-#		for z in range(chunk.width):
-			var strip_active := false
+#	for face in [0, 1,2,3,4]:
+	for face in range(6):
+		for layer in range(chunk.width):
+			var quads := [] # each quad is a list of x1,x2,y1,y2 coords (aligned with current plane)
+			for slice in range(chunk.width):
+				var strip_active := false
 
-			for offset in range(chunk.width+1):
-#			for x in range(chunk.width+1):
-#				var voxel = chunk.get_voxel(Vector3(x,y,z))
-#				var top = chunk.get_voxel(Vector3(x,y,z)+face_normals[normal])
-#				var voxel = _get_voxel_rel(normal, y, z, x)
-				var voxel = _get_voxel_rel(normal, layer, slice, offset)
-				var top = _get_voxel_rel(normal, layer, slice, offset, true)
+				for offset in range(chunk.width+1):
+					var voxel = _get_voxel_rel(face, layer, slice, offset)
+					var top = _get_voxel_rel(face, layer, slice, offset, true)
 
-				if !strip_active:
-					if voxel and !top: # start new strip
-						strip_active = true
-						quads.append([offset, offset+1, slice, slice+1])
-				elif !voxel: # end strip
-					quads[-1][1] = offset
-					strip_active = false
+					if !strip_active:
+						if voxel and !top: # start new strip
+							strip_active = true
+							quads.append([offset, offset+1, slice, slice+1])
+					elif !voxel: # end strip
+						quads[-1][1] = offset
+						strip_active = false
 
-		### merge adjacent strips
-		var a = 0
-		var b = 1
-		while a < len(quads) - 1:
-			var quad_b = quads[b]
-			var quad_a = quads[a]
-			if quad_a[3] == quad_b[2] and quad_a[0] == quad_b[0] and quad_a[1] == quad_b[1]: # y2 of current = y1 of next AND x=x
-				quads.remove(b)
-				quads[a][3] = quad_b[3]
-				merge_counter += 1
-			else:
-				b += 1
+			### merge adjacent strips
+			var a = 0
+			var b = 1
+			while a < len(quads) - 1:
+				var quad_b = quads[b]
+				var quad_a = quads[a]
+				if quad_a[3] == quad_b[2] and quad_a[0] == quad_b[0] and quad_a[1] == quad_b[1]: # y2 of current = y1 of next AND x=x
+					quads.remove(b)
+					quads[a][3] = quad_b[3]
+					merge_counter += 1
+				else:
+					b += 1
 
-			if quad_a[3] < quad_b[2]: # b is too far away
-				a += 1
-				b = a+1
-			elif b == len(quads): # b is last quad
-				a += 1
+				if quad_a[3] < quad_b[2]: # b is too far away
+					a += 1
+					b = a+1
+				elif b == len(quads): # b is last quad
+					a += 1
+					b=a
 
-
-		_add_quads(quads, layer)
+			for q in quads:
+				_convert_quad(q, layer, face)
 
 	apply_mesh()
-	print("Merged ", merge_counter, " strips")
-	print("Total tris: ", len(m_indexes)/3)
+	print("merged ", merge_counter, " strips")
+	print("indexes: ", len(m_indexes))
+	print("tris: ", len(m_indexes)/3)
 
 
 func _get_voxel_rel(face, layer, slice, offset, top=false):
 	var pos: Vector3
 	match face:
-		0:
+		0,1:
 			pos = Vector3(layer, slice, offset)
-
-		2:
+#		1:
+#			pos = Vector3(layer, slice, offset)
+		2,3:
 			pos = Vector3(offset, layer, slice)
+		4,5:
+			pos = Vector3(slice, offset, layer)
 
 	if top:
 		return chunk.get_voxel(pos + face_normals[face])
@@ -128,25 +117,62 @@ func _get_voxel_rel(face, layer, slice, offset, top=false):
 		return chunk.get_voxel(pos)
 
 
+func _convert_quad(quad, layer, face):
+	var points = quad + [layer, layer, layer+1, layer+1]
+	match face:
+		0:
+			_add_quad([
+				Vector3(layer+1, quad[2], quad[0]),
+				Vector3(layer+1, quad[2], quad[1]),
+				Vector3(layer+1, quad[3], quad[1]),
+				Vector3(layer+1, quad[3], quad[0]),
+			], face)
+		1:
+			_add_quad([
+				Vector3(layer, quad[3], quad[0]),
+				Vector3(layer, quad[3], quad[1]),
+				Vector3(layer, quad[2], quad[1]),
+				Vector3(layer, quad[2], quad[0]),
+			], face)
+		2:
+			_add_quad([
+				Vector3(quad[0], layer+1, quad[2]),
+				Vector3(quad[1], layer+1, quad[2]),
+				Vector3(quad[1], layer+1, quad[3]),
+				Vector3(quad[0], layer+1, quad[3]),
+			], face)
+		3:
+			_add_quad([
+				Vector3(quad[0], layer, quad[3]),
+				Vector3(quad[1], layer, quad[3]),
+				Vector3(quad[1], layer, quad[2]),
+				Vector3(quad[0], layer, quad[2]),
+			], face)
+		4:
+			_add_quad([
+				Vector3(quad[2], quad[0], layer+1),
+				Vector3(quad[2], quad[1], layer+1),
+				Vector3(quad[3], quad[1], layer+1),
+				Vector3(quad[3], quad[0], layer+1),
+			], face)
+		5:
+			_add_quad([
+				Vector3(quad[3], quad[0], layer),
+				Vector3(quad[3], quad[1], layer),
+				Vector3(quad[2], quad[1], layer),
+				Vector3(quad[2], quad[0], layer),
+			], face)
 
-func _add_quads(quads, y):
-	for q in quads:
-		_add_quad([
-			Vector3(q[0], y+1, q[2]),
-			Vector3(q[1], y+1, q[2]),
-			Vector3(q[1], y+1, q[3]),
-			Vector3(q[0], y+1, q[3]),
-		])
 
-
-func _add_quad(verts, f=2):
+func _add_quad(verts, face):
 	var i = len(m_verts)# offset for new tris/indexes
 
 	var col = Color(randf(), randf(), randf())
+#	var col = Color(0.1, 0.6, 0.3)
 	# add the 4 corner verts of this face
 	for v in range(4):
 		m_verts.append(verts[v])
-		m_normals.append(face_normals[f])
+		m_normals.append(face_normals[face])
 		m_colors.append(col)
 
 	for v in [0, 1, 2, 2, 3, 0]:

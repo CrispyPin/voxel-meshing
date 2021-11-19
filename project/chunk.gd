@@ -15,18 +15,23 @@ func _ready() -> void:
 	randomize()
 	voxels.resize(volume)
 	for v in range(volume):
-#		voxels[v] = 0
-#		if randf() < 0.75:
-#			#voxels[v] = (randi()%8+1)*16
-#			voxels[v] = randi()%254+1
+#		voxels[v] = v%2
+
+#		if randf() < 0.3:
+#			voxels[v] = 1#randi()%254+1
+
 		var pos:Vector3 = _i_to_pos(v)
-		voxels[v] = 0
-		if (pos - Vector3(16,16,16)).length() < 15:
-			voxels[v] = 1
+		voxels[v] = int(torus(pos - Vector3(1,1,1)*16) < 0)
+#		if (pos - Vector3(16,16,16)).length() < 32:
+#			voxels[v] = 1
 
 	$Reference.generate_mesh()
-	$Strips.generate_mesh()
+#	$Strips.generate_mesh()
 	$Greedy.generate_mesh()
+
+func torus(pos: Vector3):
+	var q = Vector2(Vector2(pos.x, pos.z).length() - 12.0, pos.y)
+	return q.length() - 5
 
 
 func get_voxel(p):
