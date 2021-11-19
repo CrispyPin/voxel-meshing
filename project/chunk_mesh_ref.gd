@@ -67,6 +67,7 @@ func generate_mesh():
 
 	apply_mesh()
 	print("indexes: ", len(m_indexes))
+# warning-ignore:integer_division
 	print("tris: ", len(m_indexes)/3)
 
 

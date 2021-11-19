@@ -53,7 +53,9 @@ func generate_mesh():
 
 	for face in range(6):
 		for layer in range(chunk.width):
-			# list of [slice start, slice end, offset start, offset end]
+			# list of [offset_start, offset_end_min, slice_start, slice_end, offset_end_max]
+			# slice is sideways relative to strips, offset along strip length
+			# offset_end is a range because it might end under voxels, so the exact lenght is not set
 			# describing relative coords of quads
 			var quads := []
 
@@ -67,9 +69,19 @@ func generate_mesh():
 					if !strip_active:
 						if voxel and !top: # start new strip
 							strip_active = true
-							quads.append([offset, offset+1, slice, slice+1])
+							quads.append([offset, offset+1, slice, slice+1, chunk.width])
 					elif !voxel: # end strip
-						quads[-1][1] = offset
+						# step back if under voxel to find the minimum offset/ strip length
+						var offset_min = offset
+						if top:
+							while offset_min > quads[-1][0]:# offset min > start
+								top = _get_voxel_rel(face, layer, slice, offset_min-1, true)
+								if not top:
+									break
+								offset_min -= 1
+
+						quads[-1][4] = offset # offset_end_max
+						quads[-1][1] = offset_min # offset_end_max
 						strip_active = false
 
 			# merge adjacent aligned strips
@@ -96,6 +108,7 @@ func generate_mesh():
 	apply_mesh()
 	print("merged ", merge_counter, " strips")
 	print("indexes: ", len(m_indexes))
+# warning-ignore:integer_division
 	print("tris: ", len(m_indexes)/3)
 
 
