@@ -52,6 +52,7 @@ func generate_mesh():
 	clear_mesh_arrays()
 
 	for face in range(6):
+#	for face in [2]:
 		for layer in range(chunk.width):
 			# list of [offset_start, offset_end_min, slice_start, slice_end, offset_end_max]
 			# slice is sideways relative to strips, offset along strip length
@@ -61,6 +62,8 @@ func generate_mesh():
 
 			for slice in range(chunk.width):
 				var strip_active := false
+				var offset_min = 0 # first offset the strip is allowed to end at
+				var prev_top = 0 # top voxel for previous offset
 
 				for offset in range(chunk.width+1):
 					var voxel = _get_voxel_rel(face, layer, slice, offset)
@@ -69,22 +72,20 @@ func generate_mesh():
 					if !strip_active:
 						if voxel and !top: # start new strip
 							strip_active = true
+							offset_min = 0#offset+1
 							quads.append([offset, offset+1, slice, slice+1, chunk.width])
-					elif !voxel: # end strip
-						# step back if under voxel to find the minimum offset/ strip length
-						var offset_min = offset
-						top = _get_voxel_rel(face, layer, slice, offset_min-1, true)
-						if top:# TODO keep track instead of backtracking
-#							print("stepping back ", layer, " ", slice, " ", offset)
-							while offset_min > quads[-1][0]:# offset min > start
-								top = _get_voxel_rel(face, layer, slice, offset_min-1, true)
-								if not top:
-									break
-								offset_min -= 1
+					else: # is in a strip
+						if top and !prev_top: # is start of new strip above
+							offset_min = offset
 
-						quads[-1][1] = offset_min # offset_end_min
-						quads[-1][4] = offset #     offset_end_max
-						strip_active = false
+						if !voxel: # end strip
+							if !prev_top: # is not covered at the end
+								offset_min = offset
+
+							quads[-1][1] = offset_min # offset_end_min
+							quads[-1][4] = offset #     offset_end_max
+							strip_active = false
+					prev_top = top
 
 			# merge adjacent aligned strips
 			var a = 0
@@ -159,6 +160,12 @@ func _convert_quad(quad, layer, face):
 				Vector3(quad[1], layer+1, quad[3]),
 				Vector3(quad[0], layer+1, quad[3]),
 			], face)
+#			_add_quad([
+#				Vector3(quad[1], layer+1, quad[2]),
+#				Vector3(quad[4], layer+1, quad[2]),
+#				Vector3(quad[4], layer+1, quad[3]),
+#				Vector3(quad[1], layer+1, quad[3]),
+#			], face)
 		3:
 			_add_quad([
 				Vector3(quad[0], layer, quad[3]),

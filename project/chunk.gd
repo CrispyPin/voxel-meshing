@@ -30,6 +30,12 @@ var test_case := [
 	Vector3(1,1,1),
 	Vector3(2,1,2),
 	Vector3(2,1,1),
+
+	# inverted T
+#	Vector3(5,0,0),
+#	Vector3(6,0,0),
+#	Vector3(6,1,0),
+#	Vector3(7,0,0),
 ]
 
 func _ready() -> void:
