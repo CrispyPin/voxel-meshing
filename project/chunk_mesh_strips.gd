@@ -65,20 +65,16 @@ func generate_mesh():
 	print("Generating mesh with strips")
 	clear_mesh_arrays()
 
-	#for y in [15]:
-	for y in range(chunk.chunk_size):
+	for y in range(chunk.width):
 
 		var quads := [] # each quad is a list of x1,x2,y1,y2 coords (aligned with current plane)
-		var quad_map = []
-		quad_map.resize(chunk.chunk_size * chunk.chunk_size)
 		# create quads for each face
-		for z in range(chunk.chunk_size):
-			for x in range(chunk.chunk_size):
+		for z in range(chunk.width):
+			for x in range(chunk.width):
 				var voxel = chunk.get_voxel(Vector3(x, y, z))
 				var top = chunk.get_voxel(Vector3(x, y+1, z))
 				if voxel and top == 0:
 					quads.append([x, x+1, z, z+1])
-					quad_map[x * chunk.chunk_size + z] = len(quads) - 1
 
 		# merge with +x neighbors in strips
 		var i = 0

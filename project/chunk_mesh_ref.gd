@@ -96,7 +96,6 @@ func _update_mesh_face_1(pos, f):
 	#m_uvs.append(Vector2(0, 1))
 	#m_uvs.append(Vector2(0, 0))
 	#m_uvs.append(Vector2(1, 0))
-	#m_uvs.append(Vector2(1, 0)) # hide corner
 	#m_uvs.append(Vector2(1, 1))
 
 	# connect into 2 tris:

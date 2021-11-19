@@ -8,11 +8,11 @@ const face_normals = [
 	Vector3(0, 0, 1), Vector3(0, 0, -1)]
 
 
-var m_verts := PoolVector3Array()
+var m_verts   := PoolVector3Array()
 var m_normals := PoolVector3Array()
 var m_indexes := PoolIntArray()
-#var m_uvs := PoolVector2Array()
-var m_colors := PoolColorArray()
+var m_colors  := PoolColorArray()
+var m_uvs     := PoolVector2Array()
 
 var mesh_array := [] # contains vertexes, normals and indexes etc.
 
@@ -22,8 +22,8 @@ onready var chunk := get_parent()
 func _ready() -> void:
 	randomize()
 	mesh = ArrayMesh.new()
+	mesh_array.resize(Mesh.ARRAY_MAX)
 	clear_mesh_arrays()
-
 
 
 func clear_mesh_arrays():
@@ -31,15 +31,15 @@ func clear_mesh_arrays():
 	m_normals.resize(0)
 	m_indexes.resize(0)
 	m_colors.resize(0)
-#	m_uvs.resize(0)
+	m_uvs.resize(0)
 
 
 func apply_mesh():
-	mesh_array.resize(Mesh.ARRAY_MAX)
 	mesh_array[Mesh.ARRAY_VERTEX] = m_verts
 	mesh_array[Mesh.ARRAY_NORMAL] = m_normals
 	mesh_array[Mesh.ARRAY_INDEX]  = m_indexes
 	mesh_array[Mesh.ARRAY_COLOR]  = m_colors
+	mesh_array[Mesh.ARRAY_TEX_UV] = m_uvs
 
 	if mesh.get_surface_count():
 		mesh.surface_remove(0)
@@ -47,14 +47,16 @@ func apply_mesh():
 
 
 func generate_mesh():
-	print("Generating 'greedy' mesh")
+	print("Generating optimised mesh")
 	var merge_counter = 0
 	clear_mesh_arrays()
 
-#	for face in [0, 1,2,3,4]:
 	for face in range(6):
 		for layer in range(chunk.width):
-			var quads := [] # each quad is a list of x1,x2,y1,y2 coords (aligned with current plane)
+			# list of [slice start, slice end, offset start, offset end]
+			# describing relative coords of quads
+			var quads := []
+
 			for slice in range(chunk.width):
 				var strip_active := false
 
@@ -70,25 +72,23 @@ func generate_mesh():
 						quads[-1][1] = offset
 						strip_active = false
 
-			### merge adjacent strips
+			# merge adjacent aligned strips
 			var a = 0
 			var b = 1
 			while a < len(quads) - 1:
 				var quad_b = quads[b]
 				var quad_a = quads[a]
-				if quad_a[3] == quad_b[2] and quad_a[0] == quad_b[0] and quad_a[1] == quad_b[1]: # y2 of current = y1 of next AND x=x
+				# if  slice_end of A = slice_start of B and offsets are equal (strips are adjacent and aligned)
+				if quad_a[3] == quad_b[2] and quad_a[0] == quad_b[0] and quad_a[1] == quad_b[1]:
 					quads.remove(b)
 					quads[a][3] = quad_b[3]
-					merge_counter += 1
+					merge_counter += 1 # just interesting info
 				else:
 					b += 1
 
-				if quad_a[3] < quad_b[2]: # b is too far away
+				if quad_a[3] < quad_b[2] or b == len(quads): # b is too far away or is last quad
 					a += 1
-					b = a+1
-				elif b == len(quads): # b is last quad
-					a += 1
-					b=a
+					b = a
 
 			for q in quads:
 				_convert_quad(q, layer, face)
@@ -104,8 +104,6 @@ func _get_voxel_rel(face, layer, slice, offset, top=false):
 	match face:
 		0,1:
 			pos = Vector3(layer, slice, offset)
-#		1:
-#			pos = Vector3(layer, slice, offset)
 		2,3:
 			pos = Vector3(offset, layer, slice)
 		4,5:
@@ -167,13 +165,19 @@ func _convert_quad(quad, layer, face):
 func _add_quad(verts, face):
 	var i = len(m_verts)# offset for new tris/indexes
 
-	var col = Color(randf(), randf(), randf())
-#	var col = Color(0.1, 0.6, 0.3)
+#	var col = Color(randf(), randf(), randf())
+	var col = Color(0.1, 0.6, 0.3)
+
 	# add the 4 corner verts of this face
 	for v in range(4):
 		m_verts.append(verts[v])
 		m_normals.append(face_normals[face])
 		m_colors.append(col)
+
+	m_uvs.append(Vector2(0, 1))
+	m_uvs.append(Vector2(0, 0))
+	m_uvs.append(Vector2(1, 0))
+	m_uvs.append(Vector2(1, 1))
 
 	for v in [0, 1, 2, 2, 3, 0]:
 		m_indexes.append(i+v)
