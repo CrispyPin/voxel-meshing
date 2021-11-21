@@ -1,7 +1,9 @@
-[gd_scene load_steps=3 format=2]
+[gd_scene load_steps=5 format=2]
 
 [ext_resource path="res://Chunk.tscn" type="PackedScene" id=1]
 [ext_resource path="res://camera.gd" type="Script" id=2]
+[ext_resource path="res://chunkmat.material" type="Material" id=3]
+[ext_resource path="res://addons/voxel_engine/chunk.gdns" type="Script" id=4]
 
 [node name="Spatial" type="Spatial"]
 
@@ -16,3 +18,10 @@ speed = 30
 transform = Transform( 0.660172, 0.374895, -0.650866, 0.115716, 0.805425, 0.581292, 0.742147, -0.459068, 0.488338, 0, 0, 0 )
 shadow_enabled = true
 shadow_bias = -0.2
+
+[node name="cppChunk" type="Spatial" parent="."]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -32, 0, 0 )
+script = ExtResource( 4 )
+
+[node name="ChunkMesh" type="MeshInstance" parent="cppChunk"]
+material_override = ExtResource( 3 )

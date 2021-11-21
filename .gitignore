@@ -1,1 +1,13 @@
 .import/
+.vscode/
+
+*.o
+*.os
+*.dblite
+*.exp
+*.lib
+*.obj
+*.TMP
+.DS_Store
+logs
+Thumbs.db

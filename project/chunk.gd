@@ -58,11 +58,14 @@ func _ready() -> void:
 #			voxels[v] = 1
 
 	# test case
-	for v in test_case:
-		set_voxel(v, 1)
+#	for v in test_case:
+#		set_voxel(v, 1)
 
-	$Reference.generate_mesh()
-	$Greedy.generate_mesh()
+func _process(_delta: float) -> void:
+	if Input.is_action_just_pressed("f1"):
+		$Reference.generate_mesh()
+	if Input.is_action_just_pressed("f2"):
+		$Greedy.generate_mesh()
 
 func torus(pos: Vector3):
 	var q = Vector2(Vector2(pos.x, pos.z).length() - 12.0, pos.y)

@@ -1,0 +1,16 @@
+[general]
+
+singleton=false
+load_once=true
+symbol_prefix="voxel_engine_"
+reloadable=true
+
+[entry]
+
+Windows.64="res://addons/voxel_engine/bin/win64/libvoxel.dll"
+X11.64="res://addons/voxel_engine/bin/x11/libvoxel.so"
+
+[dependencies]
+
+Windows.64=[  ]
+X11.64=[  ]

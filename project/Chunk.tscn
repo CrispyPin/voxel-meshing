@@ -19,7 +19,7 @@ skeleton = NodePath("../..")
 script = ExtResource( 6 )
 
 [node name="Reference" type="MeshInstance" parent="."]
-visible = false
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -32 )
 material_override = ExtResource( 3 )
 cast_shadow = 0
 generate_lightmap = false
