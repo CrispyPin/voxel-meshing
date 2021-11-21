@@ -5,9 +5,10 @@ using namespace std;
 
 void Chunk::_register_methods() {
 	register_method("_ready", &Chunk::_ready);
-	register_method("get_voxel", &Chunk::GetVoxelVec);
 	register_method("_process", &Chunk::_process);
-	//register_method("set_voxel", &Chunk::SetVoxel);
+
+	register_method("get_voxel", &Chunk::GetVoxel);
+	register_method("set_voxel", &Chunk::SetVoxel);
 }
 
 Chunk::Chunk() {
@@ -35,19 +36,16 @@ void Chunk::_init() {
 }
 
 void Chunk::_ready() {
-	// init child mesh
-	//ArrayMesh mesh = *ArrayMesh::_new();
 	array_mesh = *ArrayMesh::_new();
-
-	//MeshInstance *mi = get_node<MeshInstance>("ChunkMesh");
-	mesh_instance = get_node<MeshInstance>("ChunkMesh");
+	// init mesh child
+	MeshInstance *mesh_instance = get_node<MeshInstance>("ChunkMesh");
 	CRASH_COND(mesh_instance == nullptr);
-
-	//mesh_instance = MeshInstance::_new();
-	//mesh_instance->set_name("ChunkMesh");
-	//add_child(mesh_instance);
 	mesh_instance->set_mesh(&array_mesh);
-
+	
+	CollisionShape *collision_shape = get_node<CollisionShape>("ChunkCollider");
+	CRASH_COND(collision_shape == nullptr);
+	collider = *ConcavePolygonShape::_new();
+	collision_shape->set_shape(&collider);
 }
 
 void Chunk::_process(float delta) {
@@ -65,7 +63,10 @@ void Chunk::ClearMeshData() {
 	mesh_normal.resize(0);
 	mesh_index.resize(0);
 	mesh_color.resize(0);
+	collider_vertex.resize(0);
+#ifdef UV_MAP
 	mesh_uv.resize(0);
+#endif
 }
 
 void Chunk::ApplyMeshData() {
@@ -75,14 +76,15 @@ void Chunk::ApplyMeshData() {
 	mesh_array[Mesh::ARRAY_NORMAL] = mesh_normal;
 	mesh_array[Mesh::ARRAY_INDEX] = mesh_index;
 	mesh_array[Mesh::ARRAY_COLOR] = mesh_color;
+#ifdef UV_MAP
 	mesh_array[Mesh::ARRAY_TEX_UV] = mesh_uv;
-
-	//ArrayMesh mesh = mesh_instance->get_mesh();
+#endif
 	
 	if (array_mesh.get_surface_count() > 0) {
 		array_mesh.surface_remove(0);
 	}
 	array_mesh.add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, mesh_array);
+	collider.set_faces(collider_vertex);
 }
 
 void Chunk::MeshSimple() {
@@ -102,29 +104,14 @@ void Chunk::MeshSimple() {
 
 void Chunk::MeshSimpleFace(Vector3 pos, char face) {
 	Vector3 normal = face_normals[face];
-	if (GetVoxelVec(pos + normal) != 0)
+	if (GetVoxel(pos + normal) != 0)
 		return;
 	
-	int index_start = mesh_vertex.size();
-
-	Color col = Color(rng.randf(), rng.randf(), rng.randf());
-
-	for (int v = 0; v < 4; v++) {
-		mesh_vertex.append(pos + face_verts[face][v]);
-		mesh_normal.append(normal);
-		mesh_color.append(col);
+	Vector3 verts[4];
+	for (int i = 0; i < 4; i++) {
+		verts[i] = pos + face_verts[face][i];
 	}
-
-	mesh_index.append(index_start);
-	mesh_index.append(index_start+1);
-	mesh_index.append(index_start+2);
-	mesh_index.append(index_start+2);
-	mesh_index.append(index_start+3);
-	mesh_index.append(index_start);
-	mesh_uv.append(Vector2(0, 1));
-	mesh_uv.append(Vector2(0, 0));
-	mesh_uv.append(Vector2(1, 0));
-	mesh_uv.append(Vector2(1, 1));
+	MeshQuad(verts, face);
 }
 
 void Chunk::MeshGreedy() {
@@ -251,9 +238,9 @@ Voxel Chunk::GetVoxelRelative(char face, int layer, int slice, int offset, bool 
 			CRASH_COND(true);
 	}
 	if (top) {
-		return GetVoxelVec(pos + face_normals[face]);
+		return GetVoxel(pos + face_normals[face]);
 	}
-	return GetVoxelVec(pos);
+	return GetVoxel(pos);
 }
 
 void Chunk::MeshGreedyTransformQuad(int quad[4], int layer, char face) {
@@ -299,10 +286,10 @@ void Chunk::MeshGreedyTransformQuad(int quad[4], int layer, char face) {
 			Godot::print("Invalid face index");
 			CRASH_COND(true);
 	}
-	MeshGreedyQuad(verts, face);
+	MeshQuad(verts, face);
 }
 
-void Chunk::MeshGreedyQuad(Vector3 verts[4], char face) {
+void Chunk::MeshQuad(Vector3 verts[4], char face) {
 	int index_start = mesh_vertex.size();
 	Color col = Color(rng.randf(), rng.randf(), rng.randf());
 
@@ -311,20 +298,20 @@ void Chunk::MeshGreedyQuad(Vector3 verts[4], char face) {
 		mesh_normal.append(face_normals[face]);
 		mesh_color.append(col);
 	}
-	mesh_index.append(index_start);
-	mesh_index.append(index_start+1);
-	mesh_index.append(index_start+2);
-	mesh_index.append(index_start+2);
-	mesh_index.append(index_start+3);
-	mesh_index.append(index_start);
 
+	for (int i = 0; i < 6; i++) {
+		mesh_index.append(index_start + quad_offsets[i]);
+		collider_vertex.append(verts[quad_offsets[i]]);
+	}
+#ifdef UV_MAP
 	mesh_uv.append(Vector2(0, 1));
 	mesh_uv.append(Vector2(0, 0));
 	mesh_uv.append(Vector2(1, 0));
 	mesh_uv.append(Vector2(1, 1));
+#endif
 }
 
-Voxel Chunk::GetVoxelVec(Vector3 pos) {
+Voxel Chunk::GetVoxel(Vector3 pos) {
 	return GetVoxelXYZ(pos.x, pos.y, pos.z);
 }
 
@@ -334,7 +321,11 @@ Voxel Chunk::GetVoxelXYZ(int x, int y, int z) {
 	return 0;
 }
 
-void Chunk::SetVoxel(Voxel type, int x, int y, int z) {
+void Chunk::SetVoxel(Voxel type, Vector3 pos) {
+	SetVoxelXYZ(type, pos.x, pos.y, pos.z);
+}
+
+void Chunk::SetVoxelXYZ(Voxel type, int x, int y, int z) {
 	if (PosInBounds(x, y, z))
 		voxels[PosToIndex(x, y, z)] = type;
 }

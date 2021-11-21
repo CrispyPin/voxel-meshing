@@ -19,9 +19,12 @@ transform = Transform( 0.660172, 0.374895, -0.650866, 0.115716, 0.805425, 0.5812
 shadow_enabled = true
 shadow_bias = -0.2
 
-[node name="cppChunk" type="Spatial" parent="."]
+[node name="cppChunk" type="StaticBody" parent="."]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -32, 0, 0 )
 script = ExtResource( 4 )
 
 [node name="ChunkMesh" type="MeshInstance" parent="cppChunk"]
+visible = false
 material_override = ExtResource( 3 )
+
+[node name="ChunkCollider" type="CollisionShape" parent="cppChunk"]
