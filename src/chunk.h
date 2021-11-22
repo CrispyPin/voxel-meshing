@@ -19,6 +19,7 @@
 
 #define Voxel unsigned char
 #define UV_MAP
+#define VERT_COLOR
 
 namespace godot {
 
@@ -37,6 +38,7 @@ private:
 	void MeshGreedyTransformQuad(int quad[4], int layer, char face);
 
 	void MeshQuad(Vector3 verts[4], char face);
+	void ResizeMeshData(int quad_count);
 	void ClearMeshData();
 	void ApplyMeshData();
 
@@ -46,11 +48,14 @@ private:
 	ArrayMesh array_mesh;
 	ConcavePolygonShape collider;
 	
+	int mesh_index_offset;
 	PoolVector3Array mesh_vertex;
 	PoolVector3Array mesh_normal;
 	PoolIntArray mesh_index;
-	PoolColorArray mesh_color;
 	PoolVector3Array collider_vertex;
+#ifdef VERT_COLOR
+	PoolColorArray mesh_color;
+#endif
 #ifdef UV_MAP
 	PoolVector2Array mesh_uv;
 #endif
@@ -84,7 +89,7 @@ public:
 	void _ready();
 	void _process(float delta);
 
-	static const int width = 32;
+	static const int width = 31;
 	static const int area = width * width;
 	static const int volume = width * width * width;
 

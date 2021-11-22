@@ -9,8 +9,6 @@ void Chunk::_register_methods() {
 
 	register_method("get_voxel", &Chunk::GetVoxel);
 	register_method("set_voxel", &Chunk::SetVoxel);
-	//register_method("update_fast", &Chunk::MeshSimple);
-	//register_method("update_full", &Chunk::MeshGreedy);
 	register_property<Chunk, float>("time_to_optimise", &Chunk::time_to_optimise, 3.0);
 }
 
@@ -26,6 +24,8 @@ void Chunk::_init() {
 	mesh_optimised = true;
 	time_to_optimise = 3.0;
 
+	mesh_index_offset = 0;
+
 	//generate voxels (should maybe be function)
 	rng = *RandomNumberGenerator::_new();
 	input = Input::get_singleton();
@@ -38,14 +38,14 @@ void Chunk::_init() {
 		voxels[i] = 0;
 		//voxels[i] = (char)(rng.randf() > 0.4);
 
-		//voxels[i] = i % 2;
+		voxels[i] = i % 2;
 		//voxels[i] = rng.randi_range(0, 16)*15;
 		// torus
-		Vector3 pos = IndexToPos(i) - Vector3(1,1,1)*16;
-		Vector2 q = Vector2(Vector2(pos.x, pos.z).length() - 12.0, pos.y);
-		if (q.length() - 5 < 0) {
-			voxels[i] = rng.randi_range(1, 255);
-		}
+		//Vector3 pos = IndexToPos(i) - Vector3(1,1,1)*16;
+		//Vector2 q = Vector2(Vector2(pos.x, pos.z).length() - 12.0, pos.y);
+		//if (q.length() - 5 < 0) {
+		//	voxels[i] = rng.randi_range(1, 255);
+		//}
 		//voxels[i] = pos.y < -15;
 	}
 }
@@ -94,11 +94,14 @@ void Chunk::_process(float delta) {
 }
 
 void Chunk::ClearMeshData() {
+	mesh_index_offset = 0;
 	mesh_vertex.resize(0);
 	mesh_normal.resize(0);
 	mesh_index.resize(0);
-	mesh_color.resize(0);
 	collider_vertex.resize(0);
+#ifdef VERT_COLOR
+	mesh_color.resize(0);
+#endif
 #ifdef UV_MAP
 	mesh_uv.resize(0);
 #endif
@@ -110,7 +113,9 @@ void Chunk::ApplyMeshData() {
 	mesh_array[Mesh::ARRAY_VERTEX] = mesh_vertex;
 	mesh_array[Mesh::ARRAY_NORMAL] = mesh_normal;
 	mesh_array[Mesh::ARRAY_INDEX] = mesh_index;
+#ifdef VERT_COLOR
 	mesh_array[Mesh::ARRAY_COLOR] = mesh_color;
+#endif
 #ifdef UV_MAP
 	mesh_array[Mesh::ARRAY_TEX_UV] = mesh_uv;
 #endif
@@ -121,6 +126,23 @@ void Chunk::ApplyMeshData() {
 	array_mesh.add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, mesh_array);
 	collider.set_faces(collider_vertex);
 }
+
+void Chunk::ResizeMeshData(int quad_count) {
+	int vert_count = mesh_vertex.size() + quad_count * 4;
+	int index_count = mesh_index.size() + quad_count * 6;
+	
+	mesh_vertex.resize(vert_count);
+	mesh_normal.resize(vert_count);
+	mesh_index.resize(index_count);
+	collider_vertex.resize(index_count);
+#ifdef VERT_COLOR
+	mesh_color.resize(vert_count);
+#endif
+#ifdef UV_MAP
+	mesh_uv.resize(vert_count);
+#endif
+}
+
 
 void Chunk::UpdateTex3D() {
 	Ref<Image> voxel;
@@ -149,7 +171,6 @@ void Chunk::MeshSimple() {
 		}
 	}
 	ApplyMeshData();
-	//Godot::print(String::num(mesh_index.size()));
 }
 
 void Chunk::MeshSimpleFace(Vector3 pos, char face) {
@@ -161,6 +182,7 @@ void Chunk::MeshSimpleFace(Vector3 pos, char face) {
 	for (int i = 0; i < 4; i++) {
 		verts[i] = pos + face_verts[face][i];
 	}
+	ResizeMeshData(1);
 	MeshQuad(verts, face);
 }
 
@@ -255,7 +277,7 @@ void Chunk::MeshGreedy() {
 					b = a;
 				}
 			}
-
+			ResizeMeshData(q_offset_start.size());
 			for (int i = 0; i < q_offset_start.size(); i++) {
 				//PoolIntArray raw = (PoolIntArray)quads[i];
 				int q[4] = {q_offset_start[i], q_offset_end_min[i], q_slice_start[i], q_slice_end[i]};
@@ -340,25 +362,37 @@ void Chunk::MeshGreedyTransformQuad(int quad[4], int layer, char face) {
 }
 
 void Chunk::MeshQuad(Vector3 verts[4], char face) {
-	int index_start = mesh_vertex.size();
+	PoolVector3Array::Write vertex_w = mesh_vertex.write();
+	PoolVector3Array::Write normal_w = mesh_normal.write();	
+
+	PoolIntArray::Write index_w = mesh_index.write();
+	PoolVector3Array::Write collider_w = collider_vertex.write();
+
+#ifdef VERT_COLOR
+	PoolColorArray::Write color_w = mesh_color.write();
 	Color col = Color(rng.randf(), rng.randf(), rng.randf());
+#endif
 
 	for (int v = 0; v < 4; v++) {
-		mesh_vertex.append(verts[v]);
-		mesh_normal.append(face_normals[face]);
-		mesh_color.append(col);
+		vertex_w[mesh_index_offset * 4 + v] = verts[v];
+		normal_w[mesh_index_offset * 4 + v] = face_normals[face];
+#ifdef VERT_COLOR
+		color_w[mesh_index_offset * 4 + v] = col;
+#endif
 	}
 
 	for (int i = 0; i < 6; i++) {
-		mesh_index.append(index_start + quad_offsets[i]);
-		collider_vertex.append(verts[quad_offsets[i]]);
+		index_w[mesh_index_offset * 6 + i] = mesh_index_offset * 4 + quad_offsets[i];
+		collider_w[mesh_index_offset * 6 + i] = verts[quad_offsets[i]];
 	}
 #ifdef UV_MAP
-	mesh_uv.append(Vector2(0, 1));
-	mesh_uv.append(Vector2(0, 0));
-	mesh_uv.append(Vector2(1, 0));
-	mesh_uv.append(Vector2(1, 1));
+	PoolVector2Array::Write uv_w = mesh_uv.write();
+	uv_w[mesh_index_offset * 4] = Vector2(0, 1);
+	uv_w[mesh_index_offset * 4+1] = Vector2(0, 0);
+	uv_w[mesh_index_offset * 4+2] = Vector2(1, 0);
+	uv_w[mesh_index_offset * 4+3] = Vector2(1, 1);
 #endif
+	mesh_index_offset++;
 }
 
 Voxel Chunk::GetVoxel(Vector3 pos) {

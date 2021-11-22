@@ -1,6 +1,6 @@
 extends RayCast
 
-onready var chunk = get_node("../../Chunk")
+onready var chunk := get_node("../../Chunk")
 onready var indicator = get_node("../../Indicator")
 
 func _ready() -> void:
@@ -20,14 +20,10 @@ func _physics_process(_delta: float) -> void:
 
 func _place_voxel():
 	chunk.set_voxel(127, get_pos())
-#	chunk.update_fast()
-	#chunk.update_full()
 
 
 func _remove_voxel():
 	chunk.set_voxel(0, get_pos(-1))
-#	chunk.update_fast()
-	#chunk.update_full()
 
 
 func get_pos(offset_multiplier = 1):
