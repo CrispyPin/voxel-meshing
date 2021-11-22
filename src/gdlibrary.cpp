@@ -1,4 +1,3 @@
-//#include "chunk_mesh.h"
 #include "chunk.h"
 
 extern "C" void GDN_EXPORT voxel_engine_gdnative_init(godot_gdnative_init_options *o) {
@@ -12,6 +11,5 @@ extern "C" void GDN_EXPORT voxel_engine_gdnative_terminate(godot_gdnative_termin
 extern "C" void GDN_EXPORT voxel_engine_nativescript_init(void *handle) {
 	godot::Godot::nativescript_init(handle);
 
-	//godot::register_class<godot::ChunkMesh>();
 	godot::register_class<godot::Chunk>();
 }

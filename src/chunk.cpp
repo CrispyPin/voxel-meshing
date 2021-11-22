@@ -9,6 +9,9 @@ void Chunk::_register_methods() {
 
 	register_method("get_voxel", &Chunk::GetVoxel);
 	register_method("set_voxel", &Chunk::SetVoxel);
+	//register_method("update_fast", &Chunk::MeshSimple);
+	//register_method("update_full", &Chunk::MeshGreedy);
+	register_property<Chunk, float>("time_to_optimise", &Chunk::time_to_optimise, 3.0);
 }
 
 Chunk::Chunk() {
@@ -18,21 +21,33 @@ Chunk::~Chunk() {
 }
 
 void Chunk::_init() {
+	time_since_change = 0;
+	mesh_outdated = false;
+	mesh_optimised = true;
+	time_to_optimise = 3.0;
+
 	//generate voxels (should maybe be function)
 	rng = *RandomNumberGenerator::_new();
 	input = Input::get_singleton();
 
+	//voxel_tex3D = Texture3D::_new();
+	voxel_tex3D.instance();
+	voxel_tex3D->create(width, width, width, Image::FORMAT_R8, 0);
+
 	for (int i = 0; i < volume; i++) {
 		voxels[i] = 0;
 		//voxels[i] = (char)(rng.randf() > 0.4);
-		//torus
+
+		//voxels[i] = i % 2;
+		//voxels[i] = rng.randi_range(0, 16)*15;
+		// torus
 		Vector3 pos = IndexToPos(i) - Vector3(1,1,1)*16;
 		Vector2 q = Vector2(Vector2(pos.x, pos.z).length() - 12.0, pos.y);
 		if (q.length() - 5 < 0) {
-			voxels[i] = 1;
+			voxels[i] = rng.randi_range(1, 255);
 		}
+		//voxels[i] = pos.y < -15;
 	}
-
 }
 
 void Chunk::_ready() {
@@ -42,21 +57,41 @@ void Chunk::_ready() {
 	CRASH_COND(mesh_instance == nullptr);
 	mesh_instance->set_mesh(&array_mesh);
 	
+	ShaderMaterial *mesh_mat = static_cast<ShaderMaterial*>(*mesh_instance->get_material_override());
+	
+	mesh_mat->set_shader_param("voxels", voxel_tex3D);
+	mesh_mat->set_shader_param("chunk_width", width);
+	
 	CollisionShape *collision_shape = get_node<CollisionShape>("ChunkCollider");
 	CRASH_COND(collision_shape == nullptr);
 	collider = *ConcavePolygonShape::_new();
 	collision_shape->set_shape(&collider);
+
+	MeshGreedy();
+	UpdateTex3D();
 }
 
 void Chunk::_process(float delta) {
-	if (input->is_action_just_pressed("f3")){
+	if (input->is_action_just_pressed("f3")) {
 		MeshSimple();
 	}
-	if (input->is_action_just_pressed("f4")){
+	if (input->is_action_just_pressed("f4")) {
 		MeshGreedy();
 	}
+	if (mesh_outdated) {
+		mesh_optimised = false;
+		time_since_change = 0;
+		MeshSimple();
+		mesh_outdated = false;
+	}
+	if (!mesh_optimised) {
+		time_since_change += delta;
+		if (time_since_change >= time_to_optimise) {
+			MeshGreedy();
+			mesh_optimised = true;
+		}
+	}
 }
-
 
 void Chunk::ClearMeshData() {
 	mesh_vertex.resize(0);
@@ -87,8 +122,23 @@ void Chunk::ApplyMeshData() {
 	collider.set_faces(collider_vertex);
 }
 
+void Chunk::UpdateTex3D() {
+	Ref<Image> voxel;
+	voxel.instance();
+	voxel->create(1, 1, false, Image::FORMAT_R8);
+	voxel->lock();
+
+	for (int i = 0; i < volume; i++) {
+		Vector3 pos = IndexToPos(i);
+		Color col = Color(GetVoxel(pos)/256.0, 0, 0);
+		voxel->set_pixel(0, 0, col);
+		voxel_tex3D->set_data_partial(voxel, (int)pos.x, (int)pos.y, (int)pos.z);
+	}
+	
+}
+
 void Chunk::MeshSimple() {
-	Godot::print("Generating simple mesh with c++");
+	//Godot::print("Generating easy mesh");
 	ClearMeshData();
 
 	for (int i = 0; i < volume; i++) {
@@ -99,7 +149,7 @@ void Chunk::MeshSimple() {
 		}
 	}
 	ApplyMeshData();
-	Godot::print(String::num(mesh_index.size()));
+	//Godot::print(String::num(mesh_index.size()));
 }
 
 void Chunk::MeshSimpleFace(Vector3 pos, char face) {
@@ -115,7 +165,7 @@ void Chunk::MeshSimpleFace(Vector3 pos, char face) {
 }
 
 void Chunk::MeshGreedy() {
-	Godot::print("Generating greedy mesh with c++");
+	//Godot::print("Generating greedy mesh");
 	ClearMeshData();
 
 	for (int face = 0; face < 6; face++) {
@@ -215,7 +265,7 @@ void Chunk::MeshGreedy() {
 	}
 	
 	ApplyMeshData();
-	Godot::print(String::num(mesh_index.size()));
+	//Godot::print(String::num(mesh_index.size()));
 }
 
 Voxel Chunk::GetVoxelRelative(char face, int layer, int slice, int offset, bool top) {
@@ -326,8 +376,21 @@ void Chunk::SetVoxel(Voxel type, Vector3 pos) {
 }
 
 void Chunk::SetVoxelXYZ(Voxel type, int x, int y, int z) {
-	if (PosInBounds(x, y, z))
+	if (PosInBounds(x, y, z)) {
 		voxels[PosToIndex(x, y, z)] = type;
+		SetTex3D(type, x, y, z);
+		mesh_outdated = true;
+	}
+}
+
+void Chunk::SetTex3D(Voxel type, int x, int y, int z) {
+		Ref<Image> voxel;
+		voxel.instance();
+		voxel->create(1, 1, false, Image::FORMAT_R8);
+		voxel->lock();
+		Color col = Color(type/256.0, 0, 0);
+		voxel->set_pixel(0, 0, col);
+		voxel_tex3D->set_data_partial(voxel, x, y, z);
 }
 
 int Chunk::PosToIndex(int x, int y, int z) {

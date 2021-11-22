@@ -10,7 +10,8 @@
 
 #include <MeshInstance.hpp>
 #include <ArrayMesh.hpp>
-#include <Material.hpp>
+#include <ShaderMaterial.hpp>
+#include <Texture3D.hpp>
 
 #include <StaticBody.hpp>
 #include <CollisionShape.hpp>
@@ -21,8 +22,8 @@
 
 namespace godot {
 
-class Chunk : public Spatial {
-	GODOT_CLASS(Chunk, Spatial)
+class Chunk : public StaticBody {
+	GODOT_CLASS(Chunk, StaticBody)
 
 private:
 
@@ -36,9 +37,11 @@ private:
 	void MeshGreedyTransformQuad(int quad[4], int layer, char face);
 
 	void MeshQuad(Vector3 verts[4], char face);
-
 	void ClearMeshData();
 	void ApplyMeshData();
+
+	void SetTex3D(Voxel type, int x, int y, int z);
+	void UpdateTex3D(); // full texture
 
 	ArrayMesh array_mesh;
 	ConcavePolygonShape collider;
@@ -53,6 +56,10 @@ private:
 #endif
 	RandomNumberGenerator rng;
 	Input *input;
+
+	bool mesh_outdated;
+	bool mesh_optimised;
+	float time_since_change;
 
 	const Vector3 face_normals[6] = {
 		Vector3(1, 0, 0), Vector3(-1, 0, 0),
@@ -82,6 +89,7 @@ public:
 	static const int volume = width * width * width;
 
 	Voxel voxels[volume];
+	Ref<Texture3D> voxel_tex3D;
 
 	Voxel GetVoxel(Vector3 pos);
 	Voxel GetVoxelXYZ(int x, int y, int z);
@@ -91,6 +99,8 @@ public:
 	int PosToIndex(int x, int y, int z);
 	int PosToIndex(Vector3 pos);
 	Vector3 IndexToPos(int i);
+
+	float time_to_optimise; // time since change before generating optimised mesh
 };
 
 }
