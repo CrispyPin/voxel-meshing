@@ -1,17 +1,13 @@
-[gd_scene load_steps=9 format=2]
+[gd_scene load_steps=8 format=2]
 
 [ext_resource path="res://voxel_interaction.gd" type="Script" id=1]
 [ext_resource path="res://camera.gd" type="Script" id=2]
 [ext_resource path="res://boxes.material" type="Material" id=3]
 [ext_resource path="res://addons/voxel_engine/chunk.gdns" type="Script" id=4]
-[ext_resource path="res://old/transparent.material" type="Material" id=5]
+[ext_resource path="res://cube.mesh" type="ArrayMesh" id=5]
 [ext_resource path="res://fps.gd" type="Script" id=6]
 
 [sub_resource type="ArrayMesh" id=1]
-
-[sub_resource type="CubeMesh" id=2]
-material = ExtResource( 5 )
-size = Vector3( 1, 1, 1 )
 
 [node name="Spatial" type="Spatial"]
 
@@ -41,7 +37,7 @@ mesh = SubResource( 1 )
 [node name="ChunkCollider" type="CollisionShape" parent="Chunk"]
 
 [node name="Indicator" type="MeshInstance" parent="."]
-mesh = SubResource( 2 )
+mesh = ExtResource( 5 )
 material/0 = null
 
 [node name="ColorRect" type="ColorRect" parent="."]

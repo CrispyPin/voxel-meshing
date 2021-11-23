@@ -38,15 +38,14 @@ void Chunk::_init() {
 		voxels[i] = 0;
 		//voxels[i] = (char)(rng.randf() > 0.4);
 
-		voxels[i] = i % 2;
+		//voxels[i] = i % 2;
 		//voxels[i] = rng.randi_range(0, 16)*15;
 		// torus
-		//Vector3 pos = IndexToPos(i) - Vector3(1,1,1)*16;
-		//Vector2 q = Vector2(Vector2(pos.x, pos.z).length() - 12.0, pos.y);
-		//if (q.length() - 5 < 0) {
-		//	voxels[i] = rng.randi_range(1, 255);
-		//}
-		//voxels[i] = pos.y < -15;
+		Vector3 pos = IndexToPos(i) - Vector3(1,1,1)*16;
+		Vector2 q = Vector2(Vector2(pos.x, pos.z).length() - 12.0, pos.y);
+		if (q.length() - 5 < 0) {
+			voxels[i] = rng.randi_range(1, 255);
+		}
 	}
 }
 
@@ -418,13 +417,13 @@ void Chunk::SetVoxelXYZ(Voxel type, int x, int y, int z) {
 }
 
 void Chunk::SetTex3D(Voxel type, int x, int y, int z) {
-		Ref<Image> voxel;
-		voxel.instance();
-		voxel->create(1, 1, false, Image::FORMAT_R8);
-		voxel->lock();
-		Color col = Color(type/256.0, 0, 0);
-		voxel->set_pixel(0, 0, col);
-		voxel_tex3D->set_data_partial(voxel, x, y, z);
+	Ref<Image> voxel;
+	voxel.instance();
+	voxel->create(1, 1, false, Image::FORMAT_R8);
+	voxel->lock();
+	Color col = Color(type/256.0, 0, 0);
+	voxel->set_pixel(0, 0, col);
+	voxel_tex3D->set_data_partial(voxel, x, y, z);
 }
 
 int Chunk::PosToIndex(int x, int y, int z) {

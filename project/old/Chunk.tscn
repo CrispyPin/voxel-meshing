@@ -1,7 +1,7 @@
 [gd_scene load_steps=7 format=2]
 
 [ext_resource path="res://old/chunk.gd" type="Script" id=1]
-[ext_resource path="res://old/transparent.material" type="Material" id=3]
+[ext_resource path="res://indicator.material" type="Material" id=3]
 [ext_resource path="res://boxes.material" type="Material" id=4]
 [ext_resource path="res://old/chunk_mesh_ref.gd" type="Script" id=5]
 [ext_resource path="res://old/chunk_mesh_greedy.gd" type="Script" id=6]

@@ -19,7 +19,7 @@
 
 #define Voxel unsigned char
 #define UV_MAP
-#define VERT_COLOR
+//#define VERT_COLOR
 
 namespace godot {
 
@@ -89,7 +89,7 @@ public:
 	void _ready();
 	void _process(float delta);
 
-	static const int width = 31;
+	static const int width = 32;
 	static const int area = width * width;
 	static const int volume = width * width * width;
 
