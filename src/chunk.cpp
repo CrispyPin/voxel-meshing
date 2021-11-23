@@ -228,7 +228,7 @@ void Chunk::MeshGreedy() {
 						if (top != 0 && prev_top == 0) {// start of strip above
 							offset_end_min = offset;
 						}
-						if (voxel == 0) { // end strip
+						if (voxel == 0 && top == 0) { // end strip
 							if (prev_top == 0)
 								offset_end_min = offset;
 							

@@ -1,6 +1,8 @@
 extends RayCast
 
 
+var type = 16;
+
 onready var chunk := get_node("../../Chunk")
 onready var indicator = get_node("../../Indicator")
 
@@ -19,10 +21,14 @@ func _physics_process(_delta: float) -> void:
 		if Input.is_action_just_pressed("remove"):
 #		if Input.is_action_pressed("remove"):
 			_remove_voxel()
+	if Input.is_action_just_released("next_item"):
+		type = min(type + 16, 255)
+	if Input.is_action_just_released("prev_item"):
+		type = max(type - 16, 1)
 
 
 func _place_voxel():
-	chunk.set_voxel(127, get_pos())
+	chunk.set_voxel(type, get_pos())
 
 
 func _remove_voxel():

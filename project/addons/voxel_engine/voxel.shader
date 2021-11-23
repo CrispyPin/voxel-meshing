@@ -1,5 +1,6 @@
 shader_type spatial;
 
+uniform sampler2D box_tex;
 uniform sampler3D voxels;
 uniform float chunk_width;
 
@@ -11,5 +12,5 @@ void fragment() {
 	vec3 world_pos = surface_pos + ray_dir*0.001;
 	world_pos /= chunk_width;
 	vec4 type = texture(voxels, world_pos);
-	ALBEDO = type.xyz;
+	ALBEDO = type.rgb * texture(box_tex, UV).rgb;
 }

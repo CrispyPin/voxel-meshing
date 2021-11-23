@@ -19,7 +19,7 @@
 
 #define Voxel unsigned char
 #define UV_MAP
-//#define VERT_COLOR
+#define VERT_COLOR
 
 namespace godot {
 

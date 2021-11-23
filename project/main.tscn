@@ -14,11 +14,11 @@
 [node name="Camera" type="Camera" parent="."]
 transform = Transform( 1, 0, 0, 0, 0.819152, 0.573577, 0, -0.573577, 0.819152, 4, 4, 4 )
 script = ExtResource( 2 )
-speed = 30
+speed = 15
 
 [node name="RayCast" type="RayCast" parent="Camera"]
 enabled = true
-cast_to = Vector3( 0, 0, -16 )
+cast_to = Vector3( 0, 0, -64 )
 debug_shape_thickness = 1.0
 script = ExtResource( 1 )
 
@@ -29,6 +29,7 @@ shadow_bias = -0.2
 
 [node name="Chunk" type="StaticBody" parent="."]
 script = ExtResource( 4 )
+time_to_optimise = 1.0
 
 [node name="ChunkMesh" type="MeshInstance" parent="Chunk"]
 material_override = ExtResource( 3 )
@@ -43,14 +44,19 @@ material/0 = null
 [node name="ColorRect" type="ColorRect" parent="."]
 margin_left = 5.0
 margin_top = 9.0
-margin_right = 54.0
-margin_bottom = 25.0
-color = Color( 0, 0, 0, 1 )
+margin_right = 39.0
+margin_bottom = 27.0
+color = Color( 0, 0, 0, 0.478431 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
 
 [node name="Label" type="Label" parent="ColorRect"]
 anchor_right = 1.0
 anchor_bottom = 1.0
 text = "132"
+align = 1
+valign = 1
 script = ExtResource( 6 )
 __meta__ = {
 "_edit_use_anchors_": false
