@@ -29,7 +29,7 @@ shadow_bias = -0.2
 
 [node name="Chunk" type="StaticBody" parent="."]
 script = ExtResource( 4 )
-time_to_optimise = 1.0
+time_to_optimise = 2.0
 
 [node name="ChunkMesh" type="MeshInstance" parent="Chunk"]
 material_override = ExtResource( 3 )

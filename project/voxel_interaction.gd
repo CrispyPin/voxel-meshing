@@ -1,7 +1,7 @@
 extends RayCast
 
 
-var type = 16;
+var type = 240;
 
 onready var chunk := get_node("../../Chunk")
 onready var indicator = get_node("../../Indicator")

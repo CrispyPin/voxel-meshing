@@ -38,14 +38,14 @@ void Chunk::_init() {
 		voxels[i] = 0;
 		//voxels[i] = (char)(rng.randf() > 0.4);
 
-		//voxels[i] = i % 2;
+		voxels[i] = i % 2;
 		//voxels[i] = rng.randi_range(0, 16)*15;
 		// torus
-		Vector3 pos = IndexToPos(i) - Vector3(1,1,1)*16;
-		Vector2 q = Vector2(Vector2(pos.x, pos.z).length() - 12.0, pos.y);
-		if (q.length() - 5 < 0) {
-			voxels[i] = rng.randi_range(1, 255);
-		}
+		//Vector3 pos = IndexToPos(i) - Vector3(1,1,1)*16;
+		//Vector2 q = Vector2(Vector2(pos.x, pos.z).length() - 12.0, pos.y);
+		//if (q.length() - 5 < 0) {
+		//	voxels[i] = rng.randi_range(1, 255);
+		//}
 	}
 }
 
@@ -161,28 +161,31 @@ void Chunk::UpdateTex3D() {
 void Chunk::MeshSimple() {
 	//Godot::print("Generating easy mesh");
 	ClearMeshData();
+	int quad_capacity = 0;
 
 	for (int i = 0; i < volume; i++) {
 		if (voxels[i] != 0) {
-			for (int f = 0; f < 6; f++) {
-				MeshSimpleFace(IndexToPos(i), f);
+			if (mesh_index_offset > quad_capacity - 6) {
+				ResizeMeshData(24);
+				quad_capacity += 24;
+			}
+			for (int face = 0; face < 6; face++) {
+				Vector3 pos = IndexToPos(i);
+				Vector3 normal = face_normals[face];
+				if (GetVoxel(pos + normal) != 0)
+					continue;
+				
+				Vector3 verts[4];
+				for (int i = 0; i < 4; i++) {
+					verts[i] = pos + face_verts[face][i];
+				}
+				MeshQuad(verts, face);
 			}
 		}
 	}
-	ApplyMeshData();
-}
 
-void Chunk::MeshSimpleFace(Vector3 pos, char face) {
-	Vector3 normal = face_normals[face];
-	if (GetVoxel(pos + normal) != 0)
-		return;
-	
-	Vector3 verts[4];
-	for (int i = 0; i < 4; i++) {
-		verts[i] = pos + face_verts[face][i];
-	}
-	ResizeMeshData(1);
-	MeshQuad(verts, face);
+	ResizeMeshData(mesh_index_offset - quad_capacity); // remove extra allocated quads
+	ApplyMeshData();
 }
 
 void Chunk::MeshGreedy() {
@@ -208,8 +211,8 @@ void Chunk::MeshGreedy() {
 				Voxel prev_top = 0;
 
 				for (int offset = 0; offset < width + 1; offset++) {
-					Voxel voxel = GetVoxelRelative(face, layer, slice, offset, false);
-					Voxel top = GetVoxelRelative(face, layer, slice, offset, true);
+					Voxel voxel = GetVoxelLayered(face, layer, slice, offset, false);
+					Voxel top = GetVoxelLayered(face, layer, slice, offset, true);
 
 					if (!strip_active) {
 						if (voxel != 0 && top == 0) { // start strip
@@ -253,14 +256,16 @@ void Chunk::MeshGreedy() {
 					(q_offset_end_min[a] >= q_offset_end_min[b] && q_offset_end_min[a] <= q_offset_end_max[b]) // a range starts within b range
 					|| (q_offset_end_min[b] >= q_offset_end_min[a] && q_offset_end_min[b] <= q_offset_end_max[a]) // b range starts within a range
 				)) {
-					
+					// set width of merged strip
 					q_slice_end.set(a, q_slice_end[b]);
 
+					// set end range
 					if (q_offset_end_min[b] > q_offset_end_min[a])
 						q_offset_end_min.set(a, q_offset_end_min[b]);
 					if (q_offset_end_max[b] < q_offset_end_max[a])
 						q_offset_end_max.set(a, q_offset_end_max[b]);
 
+					// remove B strip
 					q_offset_start.remove(b);
 					q_offset_end_min.remove(b);
 					q_slice_start.remove(b);
@@ -270,7 +275,7 @@ void Chunk::MeshGreedy() {
 				else {
 					b++;
 				}
-
+				// b is last quad or there is a gap between a and b in the slice width direction
 				if (b >= q_offset_start.size() || q_slice_end[a] < q_slice_start[b]) {
 					a++;
 					b = a;
@@ -289,7 +294,7 @@ void Chunk::MeshGreedy() {
 	//Godot::print(String::num(mesh_index.size()));
 }
 
-Voxel Chunk::GetVoxelRelative(char face, int layer, int slice, int offset, bool top) {
+Voxel Chunk::GetVoxelLayered(char face, int layer, int slice, int offset, bool top) {
 	Vector3 pos;
 	switch (face) {
 		case 0:

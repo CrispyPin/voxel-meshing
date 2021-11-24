@@ -27,14 +27,9 @@ class Chunk : public StaticBody {
 	GODOT_CLASS(Chunk, StaticBody)
 
 private:
-
-	bool PosInBounds(int x, int y, int z);
-	
 	void MeshSimple();
-	void MeshSimpleFace(Vector3 pos, char face);
-
 	void MeshGreedy();
-	Voxel GetVoxelRelative(char face, int layer, int slice, int offset, bool top);
+	Voxel GetVoxelLayered(char face, int layer, int slice, int offset, bool top);
 	void MeshGreedyTransformQuad(int quad[4], int layer, char face);
 
 	void MeshQuad(Vector3 verts[4], char face);
@@ -89,7 +84,7 @@ public:
 	void _ready();
 	void _process(float delta);
 
-	static const int width = 32;
+	static const int width = 31;
 	static const int area = width * width;
 	static const int volume = width * width * width;
 
@@ -104,6 +99,7 @@ public:
 	int PosToIndex(int x, int y, int z);
 	int PosToIndex(Vector3 pos);
 	Vector3 IndexToPos(int i);
+	bool PosInBounds(int x, int y, int z);
 
 	float time_to_optimise; // time since change before generating optimised mesh
 };
