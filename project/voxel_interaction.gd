@@ -15,11 +15,11 @@ func _physics_process(_delta: float) -> void:
 	indicator.translation = get_pos() + Vector3(0.5, 0.5, 0.5)
 	indicator.visible = is_colliding()
 	if is_colliding():
-		if Input.is_action_just_pressed("place"):
-#		if Input.is_action_pressed("place"):
+#		if Input.is_action_just_pressed("place"):
+		if Input.is_action_pressed("place"):
 			_place_voxel()
-		if Input.is_action_just_pressed("remove"):
-#		if Input.is_action_pressed("remove"):
+#		if Input.is_action_just_pressed("remove"):
+		if Input.is_action_pressed("remove"):
 			_remove_voxel()
 	if Input.is_action_just_released("next_item"):
 		type = min(type + 16, 255)

@@ -38,14 +38,16 @@ void Chunk::_init() {
 		voxels[i] = 0;
 		//voxels[i] = (char)(rng.randf() > 0.4);
 
-		voxels[i] = i % 2;
+		//voxels[i] = i % 2 * rng.randi_range(1, 255);
+
 		//voxels[i] = rng.randi_range(0, 16)*15;
 		// torus
-		//Vector3 pos = IndexToPos(i) - Vector3(1,1,1)*16;
-		//Vector2 q = Vector2(Vector2(pos.x, pos.z).length() - 12.0, pos.y);
-		//if (q.length() - 5 < 0) {
-		//	voxels[i] = rng.randi_range(1, 255);
-		//}
+		Vector3 pos = IndexToPos(i) - Vector3(1,1,1)*16;
+		voxels[i] = (int)(i/area)%2 * (int)((i/width) % width) % 2 * (i % width)%2 * rng.randi_range(32, 255);
+		Vector2 q = Vector2(Vector2(pos.x, pos.z).length() - 12.0, pos.y);
+		if (q.length() - 5 < 0) {
+			voxels[i] = rng.randi_range(32, 255);
+		}
 	}
 }
 
@@ -78,9 +80,10 @@ void Chunk::_process(float delta) {
 		MeshGreedy();
 	}
 	if (mesh_outdated) {
-		mesh_optimised = false;
-		time_since_change = 0;
-		MeshSimple();
+		mesh_optimised = true;
+		//time_since_change = 0;
+		//MeshSimple();
+		MeshGreedy();
 		mesh_outdated = false;
 	}
 	if (!mesh_optimised) {
@@ -122,8 +125,19 @@ void Chunk::ApplyMeshData() {
 	if (array_mesh.get_surface_count() > 0) {
 		array_mesh.surface_remove(0);
 	}
+#ifdef DEBUG_TIME
+	int64_t start_time = OS::get_singleton()->get_system_time_msecs();
+	array_mesh.add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, mesh_array);
+	Godot::print("applying mesh");
+	Godot::print(String::num(OS::get_singleton()->get_system_time_msecs() - start_time));
+	collider.set_faces(collider_vertex);
+	Godot::print("applying collider");
+	Godot::print(String::num(OS::get_singleton()->get_system_time_msecs() - start_time));
+#else
 	array_mesh.add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, mesh_array);
 	collider.set_faces(collider_vertex);
+#endif
+
 }
 
 void Chunk::ResizeMeshData(int quad_count) {
@@ -159,15 +173,18 @@ void Chunk::UpdateTex3D() {
 }
 
 void Chunk::MeshSimple() {
-	//Godot::print("Generating easy mesh");
+#ifdef DEBUG_TIME
+	Godot::print("Generating easy mesh");
+	int64_t start_time = OS::get_singleton()->get_system_time_msecs();
+#endif
 	ClearMeshData();
 	int quad_capacity = 0;
 
 	for (int i = 0; i < volume; i++) {
 		if (voxels[i] != 0) {
 			if (mesh_index_offset > quad_capacity - 6) {
-				ResizeMeshData(24);
-				quad_capacity += 24;
+				ResizeMeshData(64);
+				quad_capacity += 64;
 			}
 			for (int face = 0; face < 6; face++) {
 				Vector3 pos = IndexToPos(i);
@@ -183,13 +200,23 @@ void Chunk::MeshSimple() {
 			}
 		}
 	}
-
 	ResizeMeshData(mesh_index_offset - quad_capacity); // remove extra allocated quads
+#ifdef DEBUG_TIME
+	Godot::print("generating time:");
+	Godot::print(String::num(OS::get_singleton()->get_system_time_msecs() - start_time));
+#endif
 	ApplyMeshData();
+#ifdef DEBUG_TIME
+	Godot::print("total time:");
+	Godot::print(String::num(OS::get_singleton()->get_system_time_msecs() - start_time));
+#endif
 }
 
 void Chunk::MeshGreedy() {
-	//Godot::print("Generating greedy mesh");
+#ifdef DEBUG_TIME
+	Godot::print("Generating greedy mesh");
+	int64_t start_time = OS::get_singleton()->get_system_time_msecs();
+#endif
 	ClearMeshData();
 
 	for (int face = 0; face < 6; face++) {
@@ -289,9 +316,15 @@ void Chunk::MeshGreedy() {
 			}
 		}
 	}
-	
+#ifdef DEBUG_TIME
+	Godot::print("generating time:");
+	Godot::print(String::num(OS::get_singleton()->get_system_time_msecs() - start_time));
+#endif
 	ApplyMeshData();
-	//Godot::print(String::num(mesh_index.size()));
+#ifdef DEBUG_TIME
+	Godot::print("total time:");
+	Godot::print(String::num(OS::get_singleton()->get_system_time_msecs() - start_time));
+#endif
 }
 
 Voxel Chunk::GetVoxelLayered(char face, int layer, int slice, int offset, bool top) {

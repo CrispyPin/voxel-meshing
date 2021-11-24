@@ -7,6 +7,7 @@
 
 #include <Input.hpp>
 #include <RandomNumberGenerator.hpp>
+#include <OS.hpp>
 
 #include <MeshInstance.hpp>
 #include <ArrayMesh.hpp>
@@ -20,6 +21,7 @@
 #define Voxel unsigned char
 #define UV_MAP
 #define VERT_COLOR
+//#define DEBUG_TIME
 
 namespace godot {
 
@@ -84,7 +86,7 @@ public:
 	void _ready();
 	void _process(float delta);
 
-	static const int width = 31;
+	static const int width = 32;
 	static const int area = width * width;
 	static const int volume = width * width * width;
 
